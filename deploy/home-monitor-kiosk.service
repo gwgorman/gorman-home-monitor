@@ -1,0 +1,16 @@
+[Unit]
+Description=Home monitor Chromium kiosk
+After=home-monitor.service
+Wants=home-monitor.service
+StartLimitIntervalSec=0
+
+[Service]
+ExecStartPre=/bin/sh -c 'until curl -fsS http://localhost:8780/ >/dev/null; do sleep 2; done'
+ExecStart=/usr/bin/chromium-browser --kiosk --no-first-run --disable-extensions --disable-session-crashed-bubble --disable-infobars --noerrdialogs --password-store=basic --user-data-dir=%h/.config/home-monitor/chromium http://localhost:8780/
+Restart=always
+RestartSec=5
+TimeoutStartSec=0
+TimeoutStopSec=15
+
+[Install]
+WantedBy=default.target

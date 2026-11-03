@@ -1,0 +1,16 @@
+name: Checks
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m unittest discover -s tests -v
+      - run: python -m py_compile server.py office_telemetry.py flight_telemetry.py satellite_telemetry.py integrations/house_inventory.py
+      - run: node --check static/app.js

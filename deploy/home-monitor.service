@@ -1,0 +1,16 @@
+[Unit]
+Description=Gorman home office monitor
+After=network.target
+
+[Service]
+WorkingDirectory=%h/home-monitor
+ExecStart=%h/home-monitor/.venv/bin/python3 %h/home-monitor/server.py
+Restart=on-failure
+RestartSec=5
+UMask=0077
+Environment=PYTHONUNBUFFERED=1
+Environment=OPENBLAS_NUM_THREADS=1
+EnvironmentFile=-%h/.config/home-monitor/runtime.env
+
+[Install]
+WantedBy=default.target
