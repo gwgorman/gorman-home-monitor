@@ -63,3 +63,14 @@ class MonitorTests(unittest.TestCase):
         self.assertNotIn('temperature',rows[0])
         payload['components']['main']['battery']['battery']['unit']='V'
         self.assertFalse(any('battery' in r for r in module.summarize({'label':'Test'},payload)))
+
+    def test_failed_source_retries_promptly_without_erasing_previous_data(self):
+        from unittest.mock import Mock
+        m=server.Monitor.__new__(server.Monitor);m.lock=threading.RLock()
+        m.sources={'forecast':{'state':'live','updated':123,'data':{'previous':True}}}
+        m.stop=Mock();m.stop.is_set.side_effect=[False,True]
+        m.worker('forecast',600,Mock(side_effect=OSError('network not ready')))
+        m.stop.wait.assert_called_once_with(15)
+        self.assertEqual(m.sources['forecast']['state'],'unavailable')
+        self.assertEqual(m.sources['forecast']['updated'],123)
+        self.assertEqual(m.sources['forecast']['data'],{'previous':True})

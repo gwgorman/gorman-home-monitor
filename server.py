@@ -43,12 +43,14 @@ class Monitor:
             threading.Thread(target=self.worker,args=(name,interval,job),daemon=True).start()
     def worker(self,name,interval,job):
         while not self.stop.is_set():
+            delay=interval
             try:
                 result=job()
                 with self.lock:self.sources[name]={'state':'live','updated':time.time(),'data':result}
             except Exception as exc:
                 with self.lock:self.sources[name]={**self.sources.get(name,{}),'state':'unavailable','error':type(exc).__name__}
-            self.stop.wait(interval)
+                delay=min(interval,15)
+            self.stop.wait(delay)
     def alerts(self):
         result=[]
         for entry in read(f'https://api.weather.gov/alerts/active?point={SITE_LAT},{SITE_LON}').get('features',[]):

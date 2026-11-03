@@ -257,6 +257,7 @@ class TelemetryService:
     def _usgs_loop(self):
         """Poll primary USGS feeds directly."""
         while not self._stop.is_set():
+            failed = False
             for source, (topic, url) in USGS_URLS.items():
                 try:
                     request = urllib.request.Request(url, headers={"User-Agent": "home-monitor/1.0"})
@@ -265,10 +266,11 @@ class TelemetryService:
                     summary = _water_summary(topic, payload, time.time())
                     summary["source"] = "USGS DIRECT"
                 except Exception:
+                    failed = True
                     summary = {"raw_ok": False, "error": "USGS LINK FAULT",
                                "updated": time.time(), "source": "USGS DIRECT"}
                 self._merge_water(source, summary)
-            self._stop.wait(USGS_REFRESH_SECONDS)
+            self._stop.wait(30 if failed else USGS_REFRESH_SECONDS)
 
     def _handle_weather(self, packet):
         kind, now = packet.get("type"), time.time()
