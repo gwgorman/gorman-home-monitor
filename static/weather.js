@@ -4,11 +4,11 @@ const WeatherInstruments=(()=>{
  function svgNode(tag,attrs={},text){const n=document.createElementNS(NS,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,String(v));if(text!==undefined)n.textContent=text;return n;}
  function instrument(label){const root=el('div',undefined,'instrument');root.append(el('div',label,'instrument-label'));return root;}
  function gauge(label,value,unit,min,max,digits=0,color='var(--accent)'){
-  const root=instrument(label),valid=typeof value==='number'&&Number.isFinite(value),display=valid?num(value,digits):'—',svg=svgNode('svg',{viewBox:'0 0 240 160',role:'img','aria-label':`${label}: ${display} ${unit}`});
+  const root=instrument(label),valid=typeof value==='number'&&Number.isFinite(value),display=valid?num(value,digits):'—',svg=svgNode('svg',{viewBox:'0 0 240 190',role:'img','aria-label':`${label}: ${display} ${unit}`});
   const path='M 32 107 A 88 88 0 0 1 208 107';
   svg.append(svgNode('path',{d:path,fill:'none',stroke:'var(--line)','stroke-width':19}));
   if(valid){const ratio=Math.max(0,Math.min(1,(value-min)/(max-min))),angle=Math.PI*(1-ratio);svg.append(svgNode('path',{d:path,fill:'none',stroke:color,'stroke-width':19,pathLength:100,'stroke-dasharray':`${ratio*100} 100`}));svg.append(svgNode('line',{x1:120,y1:107,x2:120+Math.cos(angle)*76,y2:107-Math.sin(angle)*76,stroke:'var(--text)','stroke-width':3}),svgNode('circle',{cx:120,cy:107,r:4,fill:'var(--text)'}));}
-  svg.append(svgNode('text',{x:120,y:137,'text-anchor':'middle',class:'dial-value'},display),svgNode('text',{x:120,y:155,'text-anchor':'middle',class:'dial-unit'},unit),svgNode('text',{x:25,y:130,'text-anchor':'middle',class:'dial-limit'},min),svgNode('text',{x:215,y:130,'text-anchor':'middle',class:'dial-limit'},max));root.append(svg);return root;
+  svg.append(svgNode('text',{x:120,y:153,'text-anchor':'middle',class:'dial-value'},display),svgNode('text',{x:120,y:184,'text-anchor':'middle',class:'dial-unit'},unit),svgNode('text',{x:25,y:130,'text-anchor':'middle',class:'dial-limit'},min),svgNode('text',{x:215,y:130,'text-anchor':'middle',class:'dial-limit'},max));root.append(svg);return root;
  }
  function compass(degrees){
   const root=instrument('Wind direction');root.classList.add('compass-instrument');const valid=typeof degrees==='number'&&Number.isFinite(degrees),svg=svgNode('svg',{viewBox:'0 0 240 235',role:'img','aria-label':valid?`Wind from ${num(degrees)} degrees`:'Wind direction unavailable'});
@@ -29,13 +29,13 @@ const WeatherInstruments=(()=>{
  function panel(title,cls=''){const p=el('section',undefined,'station-panel '+cls);p.append(el('h2',title));return p;}
  function render(){
   const {w,current}=station(),windCurrent=fresh(w.observed,180),v=k=>current&&typeof w[k]==='number'?w[k]:null,wind=k=>windCurrent&&typeof w[k]==='number'?w[k]:null,toF=x=>x==null?null:x*9/5+32,mph=x=>x==null?null:x*2.23694,root=el('div',undefined,'station-dashboard');
-  const windPanel=panel('Wind','wind-panel');windPanel.append(compass(wind('wind_direction')),gauge('Speed',mph(wind('wind_mps')),'mph',0,30,1),gauge('Gust',mph(v('wind_gust_mps')),'mph',0,60,1));
+  const windPanel=panel('Wind','wind-panel'),windDials=el('div',undefined,'wind-dials');windDials.append(gauge('Speed',mph(wind('wind_mps')),'mph',0,30,1),gauge('Gust',mph(v('wind_gust_mps')),'mph',0,60,1));windPanel.append(compass(wind('wind_direction')),windDials);
   const air=panel('Air','air-panel'),airDials=el('div',undefined,'air-dials');airDials.append(gauge('Temperature',toF(v('temperature_c')),'°F',30,115,1),gauge('Humidity',v('humidity'),'%',0,100,0,'var(--blue)'),gauge('Barometric pressure',v('pressure_mb')==null?null:w.pressure_mb*.029529983,'inHg',28.6,30.8,2,'var(--blue)'));air.append(airDials,pressureChart(state.station?.weather_history||[]));
   const solar=panel('Solar','solar-panel');solar.append(gauge('Solar radiation',v('solar_wm2'),'W/m²',0,1000),gauge('UV index',v('uv'),'index',0,11,1),gauge('Illuminance',v('illuminance'),'lux',0,100000));
   const extras=el('div',undefined,'station-extras'),rain=panel('Precipitation');rain.append(gauge('Rain rate',v('rain_rate_mmh')==null?null:w.rain_rate_mmh/25.4,'in/hr',0,2,2));rain.append(el('div','Type: '+(current?({0:'None',1:'Rain',2:'Hail',3:'Rain and hail'}[w.precip_type]??'Unknown'):'No report'),'instrument-note'));
   const lightning=panel('Lightning'),lightningCurrent=fresh(w.temperature_observed,300),distance=lightningCurrent&&w.lightning_5m>0&&Number.isFinite(w.lightning_5m_km)?w.lightning_5m_km*.621371:null;lightning.append(gauge('Average distance · last 5 min',distance,'miles',0,50,1),el('div',lightningCurrent?`${w.lightning_5m??'—'} strikes in the last 5 minutes`:'Strike count unavailable','instrument-note'));
   const status=panel('Station status');status.append(gauge('Battery',v('battery_v'),'V',0,3,3),el('div',(current?'Local UDP · ':'Waiting for station · ')+age(w.temperature_observed),'instrument-note'));
-  extras.append(rain,lightning,status);root.append(windPanel,air,solar,extras);return root;
+  extras.append(rain,lightning,status);if(pageSlice()===0){root.classList.add('station-primary');root.append(windPanel,air);}else{root.classList.add('station-secondary');root.append(solar,extras);}return root;
  }
  return {render};
 })();

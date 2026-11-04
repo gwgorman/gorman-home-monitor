@@ -13,7 +13,7 @@ An always-on Raspberry Pi office display: local weather, aircraft with a permane
 - Whole-house SmartThings inventory through the kitchen dashboard's existing credential manager. This avoids competing OAuth refresh tokens. YoLink and iAquaLink readings use the same read-only kitchen API.
 - USGS Lewisville Lake elevation and Trinity River flow/stage.
 - Visible report ages, unknown values instead of invented zeroes, and paginated device/battery inventories.
-- Large dark neutral interface, automatic rotation, browser restart service and persistent Wi-Fi power-save fix.
+- Distance-readable interface: six large hourly tiles, six device cards or three aircraft tapes per view, with automatic 15-second paging inside each 30-second page. Weather instruments split into wind/air and solar/rain/lightning groups; five-day summaries retain rotating detailed day/night narratives. Radar annotations remain compact. Automatic browser recovery and persistent Wi-Fi power-save fix.
 
 No MQTT dependency, photos, calendars, party controls, GPIO actions or sound. No dependency on the party display application. The kitchen API remains a separate runtime dependency for household devices; weather, aircraft and space collectors run independently.
 
