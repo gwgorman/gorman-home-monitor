@@ -2,7 +2,7 @@
 
 Designed and built by **Greg Gorman with Max (OpenAI Codex)**.
 
-An always-on Raspberry Pi office display: local weather, aircraft with a permanently enabled radar overlay, sky positions, household sensors, cold storage, pool/spa, lake levels and batteries. Twelve pages rotate automatically; a weather-alert band stays visible throughout. Read-only views are available to other devices on the configured home network.
+An always-on Raspberry Pi office display: local weather, aircraft with a permanently enabled radar overlay, sky positions, household sensors, cold storage, pool/spa, lake levels and batteries. Twelve pages rotate automatically; a weather-alert band appears for active alerts or unavailable alert updates. Read-only views are available to other devices on the configured home network.
 
 ## Features
 
