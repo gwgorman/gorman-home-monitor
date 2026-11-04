@@ -11,7 +11,7 @@ const WeatherInstruments=(()=>{
   svg.append(svgNode('text',{x:120,y:137,'text-anchor':'middle',class:'dial-value'},display),svgNode('text',{x:120,y:155,'text-anchor':'middle',class:'dial-unit'},unit),svgNode('text',{x:25,y:130,'text-anchor':'middle',class:'dial-limit'},min),svgNode('text',{x:215,y:130,'text-anchor':'middle',class:'dial-limit'},max));root.append(svg);return root;
  }
  function compass(degrees){
-  const root=instrument('Wind direction'),valid=typeof degrees==='number'&&Number.isFinite(degrees),svg=svgNode('svg',{viewBox:'0 0 240 235',role:'img','aria-label':valid?`Wind from ${num(degrees)} degrees`:'Wind direction unavailable'});
+  const root=instrument('Wind direction');root.classList.add('compass-instrument');const valid=typeof degrees==='number'&&Number.isFinite(degrees),svg=svgNode('svg',{viewBox:'0 0 240 235',role:'img','aria-label':valid?`Wind from ${num(degrees)} degrees`:'Wind direction unavailable'});
   svg.append(svgNode('circle',{cx:120,cy:112,r:78,fill:'none',stroke:'var(--line)','stroke-width':12}));
   for(let d=0;d<360;d+=30){const a=d*Math.PI/180;svg.append(svgNode('line',{x1:120+Math.sin(a)*66,y1:112-Math.cos(a)*66,x2:120+Math.sin(a)*73,y2:112-Math.cos(a)*73,stroke:'var(--muted)','stroke-width':1}));}
   for(const [text,x,y]of [['N',120,17],['E',221,118],['S',120,220],['W',19,118]])svg.append(svgNode('text',{x,y,'text-anchor':'middle',class:'compass-point'},text));
