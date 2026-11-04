@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent read-only office monitor. No party controls or account credentials."""
+"""Independent read-only office monitor with optional private Meross credentials."""
 import datetime as dt
 import ipaddress
 import json

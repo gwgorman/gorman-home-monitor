@@ -135,3 +135,7 @@ Left/Right contacts. It issues no open/close commands. Readings older than three
 minutes lose their contact state and display as unavailable. Token expiry is
 reported as unavailable and requires reconnecting the account; passwords are
 not stored. Meross still requires its cloud connection.
+
+On older ARM Pis, optional Meross compression speedups may require a long build.
+The reader also works with `meross-iot` installed using `--no-deps`, plus
+`aiohttp`, `requests`, `pycryptodomex`, and `paho-mqtt>=2.1,<3` installed normally.
