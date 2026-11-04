@@ -70,4 +70,21 @@ def apply_device_config(kitchen, config, meross):
         if key in config.get('notes',{}):item['device_note']=config['notes'][key]
         items.append(item)
     items.extend(doors);data['items']=items;house['data']=data;result['house']=house
+    lookup={}
+    for item in items:
+        key=normal(item.get('name',''))
+        if key not in lookup or item.get('component')=='main':lookup[key]=item
+    for item in doors:
+        lookup['big garage door' if item.get('garage_door_order')==0 else 'small garage door']=item
+    for item in (result.get('sensors') or {}).get('items',[]):
+        lookup.setdefault(normal(item.get('name','')),item)
+    entries=[]
+    for group in config.get('group_entries',[]):
+        members=[]
+        for name in group.get('members',[]):
+            if normal(name) in excluded or 'iphone' in normal(name):continue
+            reading=lookup.get(normal(name),{})
+            members.append({**reading,'name':name})
+        entries.append({'name':group['name'],'members':members,'unresolved':group.get('unresolved',0)})
+    result['device_groups']=entries
     return result

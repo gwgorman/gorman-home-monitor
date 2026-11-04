@@ -13,3 +13,11 @@ class DeviceTilesTests(unittest.TestCase):
   m.state={'state':'unavailable','data':{'items':[{'name':'L garage door','contact':'closed','fetched':time.time()-181}]}}
   self.assertNotIn('contact',m.snapshot()['data']['items'][0])
   self.assertEqual(m.state['data']['items'][0]['contact'],'closed')
+
+ def test_group_members_use_current_readings_and_unknown_is_not_off(self):
+  source={'house':{'data':{'items':[{'name':'Art','switch':'on','battery':80}]}}}
+  config={'excluded':['buffet 2'],'group_entries':[{'name':'Office','members':['Art','Missing','Buffet 2'],'unresolved':1}]}
+  result=apply_device_config(source,config,{})['device_groups'][0]
+  self.assertEqual([m['name'] for m in result['members']],['Art','Missing'])
+  self.assertEqual(result['members'][0]['switch'],'on');self.assertEqual(result['members'][0]['battery'],80)
+  self.assertNotIn('switch',result['members'][1]);self.assertEqual(result['unresolved'],1)
