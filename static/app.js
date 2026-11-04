@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id),DEFAULT_TZ='UTC';
 const pages=['Overview','Weather station','Hourly forecast','Five-day forecast','Air traffic','Space','Sonos','Thermal & Pool','On / Off','Security','Lake & river','Batteries'];
 const pageDescriptions=['Whole-home status at a glance','Live local WeatherFlow observations','The next six hours · temperature, rain and wind','Five days · daytime and overnight outlook','Live aircraft · weather radar always enabled','Satellites, planets and upcoming passes','Speaker playback, source and volume','Temperature, cold storage and pool / spa','Lighting, switches and other controls','Motion, doors, locks, presence and leak sensors','Lake elevation and river conditions','Device battery levels and report ages'];
-let state={},page=0,cycle=0,paused=false,epoch=Date.now(),images=new Map(),frozenSlice=0,batchOffset=0,batchEpoch=Date.now(),renderedBatches=[],slideDirection=1;
+let state={},page=0,cycle=0,paused=false,epoch=Date.now(),images=new Map(),frozenSlice=0,batchOffset=0,batchEpoch=Date.now(),renderedBatches=[],slideDirection=1,contentTransitionUntil=0;
 const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
 const fmt=(date,options)=>new Intl.DateTimeFormat('en-US',{timeZone:state.timezone||DEFAULT_TZ,...options}).format(date);
 const num=(v,d=0)=>typeof v==='number'&&Number.isFinite(v)?v.toFixed(d):'—';
@@ -135,6 +135,11 @@ function renderContent(){
  const content=$('content');
  renderedBatches=[];
  const view=renderers[page](),signature=page+':'+renderedBatches.join(','),previous=content.dataset.view;
+ // Background polling must not replace a view while it is visibly sliding.
+ if(previous===signature&&Date.now()<contentTransitionUntil)return;
+ const pager=view.querySelector('.batch-navigation'),navigation=$('tile-navigation');
+ navigation.replaceChildren(...(pager?[pager]:[]));navigation.hidden=!pager;
+ document.body.classList.toggle('has-tile-pagination',Boolean(pager));
  const mainChanged=previous&&previous.split(':')[0]!==String(page),batchChanged=previous&&!mainChanged&&previous!==signature;
  content.querySelector('.transition-outgoing')?.remove();
  if((mainChanged||batchChanged)&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -142,9 +147,10 @@ function renderContent(){
   const outgoing=el('div',undefined,'transition-outgoing');
   outgoing.setAttribute('aria-hidden','true');outgoing.inert=true;
   outgoing.append(...content.childNodes);content.append(view,outgoing);
-  const duration=mainChanged?440:360,easing='cubic-bezier(.22,.61,.36,1)';
-  const incoming=mainChanged?[{opacity:0},{opacity:1}]:[{opacity:0,transform:'translateX('+slideDirection*36+'px)'},{opacity:1,transform:'translateX(0)'}];
-  const leaving=mainChanged?[{opacity:1},{opacity:0}]:[{opacity:1,transform:'translateX(0)'},{opacity:0,transform:'translateX('+(-slideDirection*36)+'px)'}];
+  const duration=mainChanged?440:650,easing='cubic-bezier(.22,.61,.36,1)';
+  const incoming=mainChanged?[{opacity:0},{opacity:1}]:[{transform:'translateX('+slideDirection*100+'%)'},{transform:'translateX(0)'}];
+  const leaving=mainChanged?[{opacity:1},{opacity:0}]:[{transform:'translateX(0)'},{transform:'translateX('+(-slideDirection*100)+'%)'}];
+  contentTransitionUntil=Date.now()+duration;
   view.animate(incoming,{duration,easing});
   outgoing.animate(leaving,{duration,easing}).finished.catch(()=>{}).finally(()=>outgoing.remove());
   if(mainChanged)document.querySelector('.heading').animate([{opacity:.25},{opacity:1}],{duration,easing});
