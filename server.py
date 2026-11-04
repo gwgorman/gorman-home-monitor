@@ -94,11 +94,12 @@ class Handler(BaseHTTPRequestHandler):
                 image=self.server.monitor.flights.snapshot()['weather']['tiles'][key]
                 return self.reply(image,200,'image/png')
             except (ValueError,KeyError,IndexError):return self.reply(b'',404,'text/plain')
-        target=ROOT/'static'/('index.html' if path=='/' else path.lstrip('/'))
-        if target.parent!=ROOT/'static':return self.reply(b'',404,'text/plain')
+        static=(ROOT/'static').resolve()
+        target=(static/('index.html' if path=='/' else path.lstrip('/'))).resolve()
+        if target.parent not in (static,static/'flags'):return self.reply(b'',404,'text/plain')
         try:body=target.read_bytes()
         except OSError:return self.reply(b'',404,'text/plain')
-        return self.reply(body,200,{'.html':'text/html','.js':'text/javascript','.css':'text/css'}.get(target.suffix,'application/octet-stream'))
+        return self.reply(body,200,{'.html':'text/html','.js':'text/javascript','.css':'text/css','.svg':'image/svg+xml'}.get(target.suffix,'application/octet-stream'))
     def reply(self,body,status,kind):
         self.send_response(status);self.send_header('Content-Type',kind);self.send_header('Content-Length',str(len(body)));self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.end_headers();self.wfile.write(body)
 

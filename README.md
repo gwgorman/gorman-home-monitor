@@ -13,7 +13,7 @@ An always-on Raspberry Pi office display: local weather, aircraft with a permane
 - Whole-house SmartThings inventory through the kitchen dashboard's existing credential manager. This avoids competing OAuth refresh tokens. YoLink and iAquaLink readings use the same read-only kitchen API.
 - USGS Lewisville Lake elevation and Trinity River flow/stage.
 - Visible report ages, unknown values instead of invented zeroes, and paginated device/battery inventories.
-- Distance-readable interface: six large hourly tiles, six device cards or three aircraft tapes per view, with automatic 15-second paging inside each 30-second page. Weather instruments split into wind/air and solar/rain/lightning groups; five-day summaries retain rotating detailed day/night narratives. Radar annotations remain compact. Automatic browser recovery and persistent Wi-Fi power-save fix.
+- Compact monitoring interface: 20 devices per view, filled/dark switch symbols, battery indicators and red attention states. Hourly weather shows the next six hours in six chronological rows; the complete five-day outlook remains on one page. Weather station readings, wind compass, pressure history, solar gauges and lightning share one page. Ten detailed aircraft tapes and eight satellite passes fit beside their plots. Country flags identify launch origin, matching the original console. Device lists page every 15 seconds inside each 30-second page; radar annotations remain compact. Automatic browser recovery and persistent Wi-Fi power-save fix.
 
 No MQTT dependency, photos, calendars, party controls, GPIO actions or sound. No dependency on the party display application. The kitchen API remains a separate runtime dependency for household devices; weather, aircraft and space collectors run independently.
 
@@ -22,7 +22,7 @@ No MQTT dependency, photos, calendars, party controls, GPIO actions or sound. No
 Tested on a Raspberry Pi 4 with 8GB RAM, Raspbian 11 (32-bit armhf userland), Python 3.9, Chromium and a 1920×1080 X11/LXDE display.
 
 ```sh
-sudo apt-get install python3-venv libopenblas0 curl
+sudo apt-get install python3-venv libopenblas0 curl fonts-noto-color-emoji
 python3 -m venv .venv
 .venv/bin/python3 -m pip install -r requirements.txt
 mkdir -p ~/.config/home-monitor
@@ -76,3 +76,9 @@ Greg Gorman — project owner, requirements and installation.
 Max (OpenAI Codex) — AI engineering collaborator, implementation and validation.
 
 MIT licensed. Collectors were adapted from Greg and Max's Raspberry Pi console work; the office application is independently deployed.
+
+## Display data and graphics
+
+Battery icons use source-reported percentages (green full at 60% or higher, green half from 20%, red below 20%). [YoLink THSensor battery levels](https://doc.yosmart.com/docs/yolinkapi/THSensor/) use their native 0–4 scale, never a claimed percentage. WeatherFlow voltage remains a voltage reading with a neutral battery outline. Sensor alarms, wet leak sensors, offline/error states and low batteries receive red emphasis; recent lightning strikes highlight the lightning panel. No generic temperature alarms are inferred from unlike devices.
+
+Satellite flags show launch country/location, independently of the [CelesTrak owner code](https://celestrak.org/satcat/sources.php); hover details retain both. Local flag artwork is from [Twemoji](https://github.com/jdecked/twemoji), licensed CC BY 4.0 (see static/flags/LICENSE-GRAPHICS). Noto Color Emoji also supports other symbols on the Pi.

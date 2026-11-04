@@ -32,6 +32,15 @@ class MonitorTests(unittest.TestCase):
         h=server.Handler.__new__(server.Handler);h.client_address=('198.51.100.20',100);h.headers={'Host':'evil.example:8780'};h.reply=Mock()
         h.do_GET();self.assertEqual(h.reply.call_args.args[1],403)
 
+    def test_flag_graphics_are_served_as_svg_without_allowing_path_escape(self):
+        from unittest.mock import Mock
+        h=server.Handler.__new__(server.Handler);h.client_address=('127.0.0.1',100)
+        h.headers={'Host':next(iter(server.HOSTS))};h.reply=Mock();h.path='/flags/us.svg'
+        h.do_GET();self.assertEqual(h.reply.call_args.args[1:],(200,'image/svg+xml'))
+        self.assertIn(b'<svg',h.reply.call_args.args[0])
+        h.path='/flags/../../server.py';h.do_GET()
+        self.assertEqual(h.reply.call_args.args[1],404)
+
     def test_station_starts_only_local_weather_system_and_water_workers(self):
         from unittest.mock import patch
         import office_telemetry
