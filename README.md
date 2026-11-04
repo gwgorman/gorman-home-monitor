@@ -118,3 +118,20 @@ mtime before starting the hub. Seed `download-schedule.json` in `space-cache` wi
 upstream attempt (or cutover time if unknown). Retire the old collectors first.
 Do not remove the schedule to force a download. See the
 [CelesTrak usage policy](https://celestrak.org/usage-policy.php).
+
+### Private device tiles and Meross status
+
+The office monitor can read `device-tiles.json` from its private config directory.
+`groups` maps normalized device names to tile labels; `excluded` lists normalized
+names to hide, and `notes` stores optional device annotations. Keep household
+membership exports outside the public checkout. Existing source readings and
+battery metadata are preserved; this configuration supplies organization only.
+
+Install `requirements-meross.txt` into the monitor environment and place the
+Meross library's serialized cloud credentials in `meross-credentials.json` in
+that same private config directory (mode 0600). The optional collector reads
+Big/Small Garage Door status once a minute and replaces the corresponding
+Left/Right contacts. It issues no open/close commands. Readings older than three
+minutes lose their contact state and display as unavailable. Token expiry is
+reported as unavailable and requires reconnecting the account; passwords are
+not stored. Meross still requires its cloud connection.
