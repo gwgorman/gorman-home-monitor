@@ -8,7 +8,7 @@ const fmt=(date,options)=>new Intl.DateTimeFormat('en-US',{timeZone:state.timezo
 const num=(v,d=0)=>typeof v==='number'&&Number.isFinite(v)?v.toFixed(d):'—';
 const age=t=>!t?'No report':Math.max(0,Math.round((Date.now()/1000-t)/60))<1?'Just now':Date.now()/1000-t>=86400?Math.floor((Date.now()/1000-t)/86400)+' days ago':Date.now()/1000-t>=3600?Math.floor((Date.now()/1000-t)/3600)+' hr ago':Math.round((Date.now()/1000-t)/60)+' min ago';
 const fresh=(t,seconds=900)=>t&&Date.now()/1000-t<seconds;
-const activeDevice=s=>!/^old[\s_-]*keg$/i.test((s?.name||'').trim());
+const activeDevice=s=>!/^old[\s_-]*keg$/i.test((s?.name||'').trim())&&!(s?.presence!=null&&/iphone/i.test(s?.name||''));
 const kitchen=()=>{const k=state.kitchen?.data||{};return {...k,house:k.house?{...k.house,data:{...k.house.data,items:(k.house.data?.items||[]).filter(activeDevice)}}:undefined,sensors:k.sensors?{...k.sensors,items:(k.sensors.items||[]).filter(activeDevice)}:undefined};};
 function batteryLevel(s){
  if(!s)return null;
