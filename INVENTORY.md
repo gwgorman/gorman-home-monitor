@@ -15,6 +15,8 @@
 
 Permanent NWS alert band across all pages. Local network access only by default. No MQTT, party controls, photos or calendar pages.
 
-Remaining integrations: verified live lake gate positions, ERCOT power-grid data, irrigation history and water-meter usage. Environmental sensors require a working source before any values are displayed. These gaps are explicit; old default/zero readings are not used as evidence that devices are healthy.
+Individual lake gate-position indicators are retired; current public positions have not been verified. Dam-release flow remains displayed.
+
+Remaining integrations: ERCOT power-grid data, irrigation history and water-meter usage. Environmental sensors require a working source before any values are displayed. These gaps are explicit; old default/zero readings are not used as evidence that devices are healthy.
 
 Operational checks for each deployment: confirm source timestamps, weather radar tile delivery, full display layout, page rotation, browser recovery and reboot startup. Do not stop a legacy broker or data source until its remaining consumers are identified.
