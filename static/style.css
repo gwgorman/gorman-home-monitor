@@ -101,3 +101,5 @@ main{height:calc(100vh - 250px);padding-top:16px}.heading{min-height:72px;margin
 #content{overflow:clip}#tile-navigation{position:fixed;left:36px;right:36px;bottom:128px;z-index:15;background:var(--bg);min-height:42px;border-top:1px solid var(--line);padding:6px 0}#tile-navigation[hidden]{display:none}#tile-navigation .inventory-footer{margin:0}body.has-tile-pagination main{height:calc(100vh - 330px)}@media(max-width:800px){#tile-navigation{left:20px;right:20px}.batch-navigation{gap:10px;font-size:12px}}
 
 .security-grid .house-group-readings>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.security-temperature{font-size:14px;font-weight:400;color:var(--muted);white-space:nowrap}
+
+.security-door-lines{font-size:15px!important;line-height:16px!important}
