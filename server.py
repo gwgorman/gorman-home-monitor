@@ -87,6 +87,7 @@ class Handler(BaseHTTPRequestHandler):
         if host not in HOSTS:
             return self.reply(b'Use the office monitor hostname',403,'text/plain')
         path=self.path.split('?')[0]
+        if path=='/api/space':return self.reply(json.dumps(self.server.monitor.space.snapshot(),allow_nan=False).encode(),200,'application/json')
         if path=='/api/status':return self.reply(json.dumps(self.server.monitor.snapshot(),allow_nan=False).encode(),200,'application/json')
         if path.startswith('/radar/'):
             try:

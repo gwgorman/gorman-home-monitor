@@ -3,6 +3,8 @@
 
 import copy
 import datetime as dt
+import email.utils
+import fcntl
 import json
 import os
 import tempfile
@@ -20,7 +22,7 @@ except ImportError:  # Keep the console usable while the optional package is abs
 SITE_LAT = float(os.environ.get("HOME_MONITOR_LAT", "0.0"))
 SITE_LON = float(os.environ.get("HOME_MONITOR_LON", "0.0"))
 REFRESH_SECONDS = 2 * 60 * 60
-RETRY_SECONDS = 5 * 60
+RETRY_SECONDS = REFRESH_SECONDS
 PASS_REFRESH_SECONDS = 15 * 60
 PASS_CALCULATION_YIELD_SECONDS = .08
 STARLINK_POSITION_SECONDS = 5.0
@@ -121,6 +123,7 @@ class SatelliteTelemetryService:
         self.cache_path = os.path.join(self.cache_dir, "celestrak-visual-stations.tle")
         self.metadata_path = os.path.join(self.cache_dir, "celestrak-satcat.json")
         self.starlink_cache_path = os.path.join(self.cache_dir, "celestrak-starlink.tle")
+        self.schedule_path = os.path.join(self.cache_dir, "download-schedule.json")
         self._lock = threading.RLock()
         self._stop = threading.Event()
         self._thread = None
@@ -155,7 +158,44 @@ class SatelliteTelemetryService:
 
     def snapshot(self):
         with self._lock:
-            return copy.deepcopy(self._data)
+            return {**copy.deepcopy(self._data), "source": "household-orbit-hub",
+                    "catalog_retry_at": self._deadline("catalog"),
+                    "starlink_retry_at": self._deadline("starlink")}
+
+    def _deadline(self, group):
+        try:
+            with open(self.schedule_path, encoding="utf-8") as source:
+                return float(json.load(source).get(group, 0))
+        except (OSError, ValueError, TypeError):
+            return 0.0
+
+    def _defer_download(self, group, deadline):
+        # Persist BEFORE network I/O: a restart must not repeat the query.
+        os.makedirs(self.cache_dir, exist_ok=True)
+        try:
+            with open(self.schedule_path, encoding="utf-8") as source:
+                schedule = json.load(source)
+        except (OSError, ValueError):
+            schedule = {}
+        schedule[group] = max(float(schedule.get(group, 0)), deadline)
+        temporary = self.schedule_path + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as target:
+            json.dump(schedule, target)
+        os.replace(temporary, self.schedule_path)
+        return schedule[group]
+
+    def _retry_deadline(self, group, error, now):
+        deadline = now + REFRESH_SECONDS
+        if isinstance(error, urllib.error.HTTPError):
+            retry = error.headers.get("Retry-After", "") if error.headers else ""
+            try:
+                deadline = max(deadline, now + float(retry))
+            except ValueError:
+                try:
+                    deadline = max(deadline, email.utils.parsedate_to_datetime(retry).timestamp())
+                except (ValueError, TypeError, OverflowError):
+                    pass
+        return self._defer_download(group, deadline)
 
     def _load_records(self, text, stamp):
         records = _dedupe_records(_tle_records(text))
@@ -387,6 +427,14 @@ class SatelliteTelemetryService:
             return
         try:
             os.makedirs(self.cache_dir, exist_ok=True)
+            # One producer per cache directory, even if launched outside systemd.
+            self._producer_lock = open(os.path.join(self.cache_dir, "producer.lock"), "a")
+            try:
+                fcntl.flock(self._producer_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                with self._lock:
+                    self._data["error"] = "ORBIT HUB ALREADY RUNNING"
+                return
             loader = Loader(self.cache_dir)
             self._ts = loader.timescale()
             self._observer = wgs84.latlon(SITE_LAT, SITE_LON)
@@ -408,15 +456,16 @@ class SatelliteTelemetryService:
             starlink_catalog_stamp = 0.0
             with self._lock:
                 self._data["error"] = str(exc)
-        next_catalog_refresh = (catalog_stamp + REFRESH_SECONDS
-                                if self._satellites and self._metadata else 0.0)
-        next_starlink_catalog_refresh = (starlink_catalog_stamp + REFRESH_SECONDS
+        next_catalog_refresh = max(self._deadline("catalog"), catalog_stamp + REFRESH_SECONDS
+                                if self._satellites else 0.0)
+        next_starlink_catalog_refresh = max(self._deadline("starlink"), starlink_catalog_stamp + REFRESH_SECONDS
                                          if self._starlinks else 0.0)
         next_starlink_position = 0.0
         next_pass_refresh = 0.0
         while not self._stop.is_set():
             now = time.time()
             if now >= next_catalog_refresh:
+                self._defer_download("catalog", now + REFRESH_SECONDS)
                 try:
                     catalog_stamp = self._refresh_catalog()
                     next_catalog_refresh = now + REFRESH_SECONDS
@@ -424,25 +473,20 @@ class SatelliteTelemetryService:
                     with self._lock:
                         self._data.update(error="", connected=True, retry_at=0.0)
                 except (OSError, ValueError, urllib.error.URLError) as exc:
-                    next_catalog_refresh = now + RETRY_SECONDS
+                    next_catalog_refresh = self._retry_deadline("catalog", exc, now)
                     with self._lock:
                         self._data.update(error=str(exc), connected=bool(self._satellites),
                                           retry_at=next_catalog_refresh)
             if now >= next_starlink_catalog_refresh:
+                self._defer_download("starlink", now + REFRESH_SECONDS)
                 try:
                     starlink_catalog_stamp = self._refresh_starlink_catalog()
                     next_starlink_catalog_refresh = now + REFRESH_SECONDS
                     next_starlink_position = 0.0
                 except (OSError, ValueError, urllib.error.URLError) as exc:
-                    # CelesTrak uses 403 responses to enforce its duplicate-query
-                    # interval.  Respect that signal instead of retrying every
-                    # five minutes and extending the rate-limit window.
-                    rate_limited = (isinstance(exc, urllib.error.HTTPError)
-                                    and exc.code == 403)
-                    next_starlink_catalog_refresh = now + (REFRESH_SECONDS
-                                                            if rate_limited else RETRY_SECONDS)
+                    next_starlink_catalog_refresh = self._retry_deadline("starlink", exc, now)
                     with self._lock:
-                        self._data["starlink_error"] = str(exc)
+                        self._data.update(starlink_error=str(exc), starlink_retry_at=next_starlink_catalog_refresh)
             if self._satellites:
                 try:
                     self._positions()

@@ -84,3 +84,37 @@ Battery icons use source-reported percentages (green full at 60% or higher, gree
 Satellite flags show launch country/location, independently of the [CelesTrak owner code](https://celestrak.org/satcat/sources.php); hover details retain both. Local flag artwork is from [Twemoji](https://github.com/jdecked/twemoji), licensed CC BY 4.0 (see static/flags/LICENSE-GRAPHICS). Noto Color Emoji also supports other symbols on the Pi.
 
 Airline/operator banners are stored locally for common ICAO callsign prefixes, sourced from [Jxck-S/airline-logos](https://github.com/Jxck-S/airline-logos/tree/main/fr24_banners). Unrecognized or private callsigns keep their plain identifier. Airline marks remain the property of their owners and are outside the code MIT license; see static/logos/NOTICE.md.
+
+### Shared household orbital hub
+
+The office monitor is the sole orbital producer. Its LAN-only `/api/space` endpoint
+serves the same satellite positions, Starlink positions, upcoming passes, planets
+and bright stars used by its own display. HTTP reads never trigger provider
+requests. DE421 stays in the hub's persistent `space-cache`; clients need neither
+Skyfield nor their own ephemeris downloads. All clients use the hub's configured
+observer location, so this feed is intended for displays at the same house.
+
+To convert a compatible Star Trek display, back up its `satellite_telemetry.py`,
+install `shared_orbits.py` beside it and install
+`integrations/startrek_satellite_client.py` as `satellite_telemetry.py`. Set
+`HOME_ORBITS_URL=http://office-monitor.local:8780/api/space` in its systemd user
+service environment, substituting your hub hostname. Reload systemd and restart
+the display. The existing start/stop/snapshot interface remains unchanged.
+Add the hub hostname to `HOME_MONITOR_HOSTS` and configure its trusted LAN subnet.
+There are no account credentials in this public-data feed.
+
+Only the hub contacts CelesTrak. Each catalog refresh attempt reserves at least a
+two-hour cooldown on disk **before** network access, including failed attempts;
+longer HTTP Retry-After values extend it. A restart preserves that deadline.
+Clients poll the LAN every five seconds and never fall back to CelesTrak. They
+retain the last snapshot on disk with its original timestamps, and mark the feed
+unavailable and hide frozen sky positions after a brief outage. The hub retains
+catalogs for propagation while provider downloads recover. Starlink positions
+are calculated in batches, so their timestamp can trail the main sky snapshot.
+
+When migrating an existing installation, copy its public TLE cache with preserved
+mtime before starting the hub. Seed `download-schedule.json` in `space-cache` with
+`catalog` and `starlink` Unix deadlines at least two hours beyond the last known
+upstream attempt (or cutover time if unknown). Retire the old collectors first.
+Do not remove the schedule to force a download. See the
+[CelesTrak usage policy](https://celestrak.org/usage-policy.php).
