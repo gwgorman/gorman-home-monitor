@@ -89,8 +89,8 @@ main{height:calc(100vh - 250px);padding-top:16px}.heading{min-height:72px;margin
 
 #alert-layer[hidden]{display:none}
 
-/* Compact switch groups: half-height tiles, with state conveyed by the icon. */
-.house-systems-grid.controls-grid{grid-auto-rows:87px;gap:10px}.controls-grid .house-group{padding:8px 12px}.controls-grid .house-group-heading{gap:7px}.controls-grid .house-group-heading>strong{font-size:17px}.controls-grid .house-group-readings{margin-top:5px;gap:3px;font-size:15px}.controls-grid .house-group-readings>div:first-child{font-size:19px}.controls-grid .house-group-age{bottom:7px;font-size:11px}.controls-grid .switch-symbol{width:28px;height:25px;font-size:20px;margin-left:auto}.controls-grid .group-batteries:empty{display:none}
+/* Shared compact device cards keep switches and security visually consistent. */
+.house-systems-grid.compact-device-grid{grid-auto-rows:87px;gap:10px}.compact-device-grid .house-group{padding:8px 12px}.compact-device-grid .house-group-heading{gap:7px}.compact-device-grid .house-group-heading>strong{font-size:17px}.compact-device-grid .house-group-readings{margin-top:5px;gap:3px;font-size:15px}.compact-device-grid .house-group-readings>div:first-child{font-size:19px}.compact-device-grid .house-group-age{bottom:7px;font-size:11px}.compact-device-grid .switch-symbol{width:28px;height:25px;font-size:20px;margin-left:auto}.compact-device-grid .group-batteries:empty{display:none}
 
 .batch-navigation{display:flex;align-items:center;justify-content:center;gap:18px}.batch-navigation button{font:24px Arial,sans-serif;padding:2px 15px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--accent);cursor:pointer}.batch-navigation button:hover,.batch-navigation button:focus-visible{border-color:var(--accent)}
 
@@ -99,3 +99,5 @@ main{height:calc(100vh - 250px);padding-top:16px}.heading{min-height:72px;margin
 
 /* Full-width slides are clipped to the content; the pager stays on the screen. */
 #content{overflow:clip}#tile-navigation{position:fixed;left:36px;right:36px;bottom:128px;z-index:15;background:var(--bg);min-height:42px;border-top:1px solid var(--line);padding:6px 0}#tile-navigation[hidden]{display:none}#tile-navigation .inventory-footer{margin:0}body.has-tile-pagination main{height:calc(100vh - 330px)}@media(max-width:800px){#tile-navigation{left:20px;right:20px}.batch-navigation{gap:10px;font-size:12px}}
+
+.security-grid .house-group-readings>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.security-temperature{font-size:14px;font-weight:400;color:var(--muted);white-space:nowrap}
