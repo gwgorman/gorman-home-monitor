@@ -103,3 +103,6 @@ main{height:calc(100vh - 250px);padding-top:16px}.heading{min-height:72px;margin
 .security-grid .house-group-readings>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.security-temperature{font-size:14px;font-weight:400;color:var(--muted);white-space:nowrap}
 
 .security-door-lines{font-size:15px!important;line-height:16px!important}
+
+.security-door-lines{gap:0!important;line-height:15px!important;margin-top:3px!important}.security-door-lines>div:first-child{font-size:15px!important}
+.house-systems-grid.thermal-grid{grid-auto-rows:105px;gap:10px}.thermal-grid .house-group{padding:8px 12px}.thermal-grid .house-group-heading>strong{font-size:17px}.thermal-grid .house-group-readings{margin-top:7px;gap:3px;font-size:14px}.thermal-grid .house-group-readings>div:first-child{font-size:23px}.thermal-grid .house-group-age{bottom:6px;font-size:11px}.thermal-grid>.card{grid-row:span 2}
