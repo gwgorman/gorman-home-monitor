@@ -74,3 +74,17 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(m.sources['forecast']['state'],'unavailable')
         self.assertEqual(m.sources['forecast']['updated'],123)
         self.assertEqual(m.sources['forecast']['data'],{'previous':True})
+
+    def test_pressure_history_survives_restart_without_retaining_bad_or_expired_values(self):
+        import office_telemetry,json
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'history.json';now=time.time()
+            path.write_text(json.dumps([{'time':now-90000,'pressure_mb':990},{'time':now-120,'pressure_mb':991},{'time':now-60,'pressure_mb':None}]))
+            first=office_telemetry.TelemetryService(history_path=path)
+            first._record_pressure(now,992)
+            first._record_pressure(now,992.5)
+            second=office_telemetry.TelemetryService(history_path=path)
+            rows=second.snapshot()['weather_history']
+            self.assertEqual(len(rows),2)
+            self.assertEqual(rows[-1]['pressure_mb'],992.5)
+            self.assertEqual(path.stat().st_mode&0o777,0o600)

@@ -3,7 +3,7 @@
 | Page | Source | Status |
 |---|---|---|
 | Overview | Direct kitchen device inventory and local weather | Implemented, source ages visible |
-| Weather station | WeatherFlow UDP 50222 | Implemented, session pressure history |
+| Weather station | WeatherFlow UDP 50222 | Implemented, locally retained pressure history (up to 24 hours) |
 | Hourly forecast | National Weather Service | 48 hours, eight periods per rotation |
 | Five-day forecast | National Weather Service | Day/night narratives |
 | Air traffic | Local PiAware plus IEM NEXRAD | Implemented, radar always enabled |

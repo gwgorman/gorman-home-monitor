@@ -6,7 +6,7 @@ An always-on Raspberry Pi office display: local weather, aircraft with a permane
 
 ## Features
 
-- Direct local WeatherFlow UDP observations; no weather-station cloud token.
+- Direct local WeatherFlow UDP observations; wind compass and instrument gauges grouped like a weather station, with a locally retained 24-hour pressure history. No weather-station cloud token.
 - Independent National Weather Service alerts, 48 hourly forecast periods and five detailed forecast days.
 - Local PiAware/SkyAware aircraft tracks and cached Iowa Environmental Mesonet NEXRAD tiles. Radar stays enabled; unavailable or delayed feeds are labeled.
 - Skyfield orbital predictions using CelesTrak catalogs, plus planets and bright stars.

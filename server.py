@@ -34,7 +34,7 @@ def read(address):
 class Monitor:
     def __init__(self):
         self.lock=threading.RLock();self.stop=threading.Event();self.sources={}
-        self.station=office_telemetry.TelemetryService()
+        self.station=office_telemetry.TelemetryService(history_path=CONFIG/'weather-history.json')
         self.flights=FlightTelemetryService();self.flights.set_weather_enabled(True)
         self.space=SatelliteTelemetryService(cache_dir=str(CONFIG/'space-cache'))
     def start(self):

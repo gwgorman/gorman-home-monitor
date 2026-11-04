@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import collections, copy, datetime as dt, json, os, socket, subprocess, threading, time, urllib.request
+import collections, copy, datetime as dt, json, math, os, socket, subprocess, threading, time, urllib.request
 
 try:
     import psutil
@@ -114,7 +114,8 @@ def _water_summary(topic, payload, now):
 class TelemetryService:
     """Collect local observations without broker or account credentials."""
 
-    def __init__(self):
+    def __init__(self, history_path=None):
+        self._history_path = os.fspath(history_path) if history_path else None
         self._lock = threading.RLock()
         self._stop = threading.Event()
         self._last_net = {}
@@ -124,10 +125,50 @@ class TelemetryService:
             "system": {},
             "network": {},
             "weather": {},
+            "weather_history": [],
             "water": {"lake": {}, "trinity": {}},
             "weatherflow": {"connected": False, "updated": 0.0, "error": "WAITING"},
         }
         self._threads = []
+        if self._history_path:
+            try:
+                with open(self._history_path, encoding="utf-8") as stream:
+                    self._data["weather_history"] = self._clean_history(json.load(stream))
+            except (OSError, ValueError, TypeError):
+                pass
+
+    @staticmethod
+    def _clean_history(rows):
+        if not isinstance(rows, list):
+            return []
+        now = time.time()
+        unique = {}
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            stamp, pressure = row.get("time"), row.get("pressure_mb")
+            if any(isinstance(x, bool) or not isinstance(x, (int, float)) or not math.isfinite(x) for x in (stamp, pressure)):
+                continue
+            if now - 86400 <= stamp <= now + 60 and 0 < pressure < 2000:
+                unique[stamp] = {"time": stamp, "pressure_mb": pressure}
+        return [unique[t] for t in sorted(unique)][-2880:]
+
+    def _record_pressure(self, stamp, pressure):
+        with self._lock:
+            rows = self._clean_history(self._data["weather_history"] + [{"time": stamp, "pressure_mb": pressure}])
+            self._data["weather_history"] = rows
+        if not self._history_path:
+            return
+        temporary = self._history_path + ".tmp"
+        try:
+            os.makedirs(os.path.dirname(self._history_path), exist_ok=True, mode=0o700)
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                json.dump(rows, stream, allow_nan=False)
+            os.replace(temporary, self._history_path)
+        except OSError:
+            with self._lock:
+                self._data["weather_history_error"] = "History cache unavailable"
 
     def start(self):
         if self._threads:
@@ -324,3 +365,5 @@ class TelemetryService:
             with self._lock:
                 self._data["weather"].update(values)
                 self._data["weatherflow"].update(connected=True, updated=now, error="")
+            if kind == "obs_st" and "pressure_mb" in values:
+                self._record_pressure(values["temperature_observed"], values["pressure_mb"])
