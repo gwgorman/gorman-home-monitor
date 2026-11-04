@@ -88,3 +88,6 @@ main{height:calc(100vh - 250px);padding-top:16px}.heading{min-height:72px;margin
 @media(max-width:1000px){.lake-dashboard{grid-template-columns:1fr}.lake-chart svg{height:170px}.rain-chart svg{height:110px}}
 
 #alert-layer[hidden]{display:none}
+
+/* Compact switch groups: half-height tiles, with state conveyed by the icon. */
+.house-systems-grid.controls-grid{grid-auto-rows:87px;gap:10px}.controls-grid .house-group{padding:8px 12px}.controls-grid .house-group-heading{gap:7px}.controls-grid .house-group-heading>strong{font-size:17px}.controls-grid .house-group-readings{margin-top:5px;gap:3px;font-size:15px}.controls-grid .house-group-readings>div:first-child{font-size:19px}.controls-grid .house-group-age{bottom:7px;font-size:11px}.controls-grid .switch-symbol{width:28px;height:25px;font-size:20px;margin-left:auto}.controls-grid .group-batteries:empty{display:none}
