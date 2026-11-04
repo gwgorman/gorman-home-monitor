@@ -8,7 +8,7 @@ An always-on Raspberry Pi office display: local weather, aircraft with a permane
 
 - Direct local WeatherFlow UDP observations; wind compass and instrument gauges grouped like a weather station, with a locally retained 24-hour pressure history. No weather-station cloud token.
 - Independent National Weather Service alerts, 48 hourly forecast periods and five detailed forecast days.
-- Local PiAware/SkyAware aircraft tracks and cached Iowa Environmental Mesonet NEXRAD tiles. Radar stays enabled; unavailable or delayed feeds are labeled.
+- Local PiAware/SkyAware aircraft tracks and cached Iowa Environmental Mesonet NEXRAD tiles. Radar stays enabled; unavailable or delayed feeds are labeled. The 80 NM scope uses the console square-root range scale to expand nearby airspace. Aircraft, trails, distance rings and weather imagery share that projection; radar tiles are inverse-warped once per image update and cached.
 - Skyfield orbital predictions using CelesTrak catalogs, plus planets and bright stars.
 - Whole-house SmartThings inventory through the kitchen dashboard's existing credential manager. This avoids competing OAuth refresh tokens. YoLink and iAquaLink readings use the same read-only kitchen API.
 - USGS Lewisville Lake elevation and Trinity River flow/stage.
