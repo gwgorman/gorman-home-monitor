@@ -9,14 +9,17 @@ try:
 except ImportError:
     psutil = None
 
+from water_history import lake_history, release_report
+
 WEATHERFLOW_PORT = 50222
 USGS_REFRESH_SECONDS = 900
 
 USGS_URLS = {
+    "richland": ("RichlandChambers", "https://waterservices.usgs.gov/nwis/iv/?format=json&sites=08064550&siteStatus=all&period=P7D"),
     "lake": ("LewisvilleLake", "https://waterservices.usgs.gov/nwis/iv/"
-             "?format=json&sites=08052800&siteStatus=all"),
+             "?format=json&sites=08052800&siteStatus=all&period=P7D"),
     "trinity": ("TrinityRiver", "https://waterservices.usgs.gov/nwis/iv/"
-                "?format=json&sites=08053000&parameterCd=00060%2C00065&siteStatus=all"),
+                "?format=json&sites=08053000&parameterCd=00060%2C00065&siteStatus=all&period=P7D"),
 }
 
 def _iso_epoch(value):
@@ -304,13 +307,21 @@ class TelemetryService:
                     request = urllib.request.Request(url, headers={"User-Agent": "home-monitor/1.0"})
                     with urllib.request.urlopen(request, timeout=15) as response:
                         payload = json.load(response)
-                    summary = _water_summary(topic, payload, time.time())
+                    summary = lake_history(payload, {'lake':'08052800','trinity':'08053000','richland':'08064550'}[source])
                     summary["source"] = "USGS DIRECT"
                 except Exception:
                     failed = True
                     summary = {"raw_ok": False, "error": "USGS LINK FAULT",
                                "updated": time.time(), "source": "USGS DIRECT"}
                 self._merge_water(source, summary)
+            try:
+                request = urllib.request.Request('https://www.swf-wc.usace.army.mil/reports/fish2.htm',headers={'User-Agent':'home-monitor/1.0'})
+                with urllib.request.urlopen(request,timeout=15) as response:releases=release_report(response.read().decode('utf-8',errors='replace'))
+                with self._lock:self._data['water']['releases']={'items':releases,'fetched':time.time(),'error':''}
+            except Exception:
+                with self._lock:
+                    current=self._data['water'].setdefault('releases',{'items':{}})
+                    current['error']='USACE report unavailable'
             self._stop.wait(30 if failed else USGS_REFRESH_SECONDS)
 
     def _handle_weather(self, packet):
