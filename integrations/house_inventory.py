@@ -5,7 +5,7 @@ import math
 import time
 import urllib.parse
 
-FIELDS=[('temperatureMeasurement','temperature','temperature'),('relativeHumidityMeasurement','humidity','humidity'),('contactSensor','contact','contact'),('waterSensor','water','water'),('switch','switch','switch'),('switchLevel','level','level'),('battery','battery','battery'),('powerMeter','power','power'),('energyMeter','energy','energy'),('motionSensor','motion','motion'),('lock','lock','lock'),('presenceSensor','presence','presence')]
+FIELDS=[('mediaPlayback','playbackStatus','playbackStatus'),('audioVolume','volume','volume'),('audioMute','mute','mute'),('audioTrackData','audioTrackData','audioTrackData'),('temperatureMeasurement','temperature','temperature'),('relativeHumidityMeasurement','humidity','humidity'),('contactSensor','contact','contact'),('waterSensor','water','water'),('switch','switch','switch'),('switchLevel','level','level'),('battery','battery','battery'),('powerMeter','power','power'),('energyMeter','energy','energy'),('motionSensor','motion','motion'),('lock','lock','lock'),('presenceSensor','presence','presence')]
 
 def summarize(device,status):
     result=[]
@@ -15,7 +15,9 @@ def summarize(device,status):
         for capability,attribute,key in FIELDS:
             item=capabilities.get(capability,{}).get(attribute,{})
             value=item.get('value')
-            if value is None or isinstance(value,(dict,list,bool)):continue
+            if key=='audioTrackData' and isinstance(value,dict):
+                value={k:str(value[k])[:160] for k in ('title','artist','mediaSource') if isinstance(value.get(k),str)}
+            elif value is None or isinstance(value,(dict,list,bool)):continue
             if isinstance(value,float) and not math.isfinite(value):continue
             row[key]=value[:100] if isinstance(value,str) else value
             row[key+'_unit']=item.get('unit','')

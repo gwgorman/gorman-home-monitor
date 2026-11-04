@@ -73,6 +73,16 @@ class MonitorTests(unittest.TestCase):
         payload['components']['main']['battery']['battery']['unit']='V'
         self.assertFalse(any('battery' in r for r in module.summarize({'label':'Test'},payload)))
 
+    def test_audio_inventory_only_exposes_display_metadata(self):
+        import importlib.util
+        path=Path(__file__).resolve().parents[1]/'integrations'/'house_inventory.py'
+        spec=importlib.util.spec_from_file_location('audio_inventory',path)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        payload={'components':{'main':{'mediaPlayback':{'playbackStatus':{'value':'playing'}},'audioTrackData':{'audioTrackData':{'value':{'title':'Song','artist':'Artist','mediaSource':'Radio','privateUrl':'not for display'}}}}}}
+        row=module.summarize({'label':'Audio'},payload)[0]
+        self.assertEqual(row['playbackStatus'],'playing')
+        self.assertEqual(row['audioTrackData'],{'title':'Song','artist':'Artist','mediaSource':'Radio'})
+
     def test_failed_source_retries_promptly_without_erasing_previous_data(self):
         from unittest.mock import Mock
         m=server.Monitor.__new__(server.Monitor);m.lock=threading.RLock()
