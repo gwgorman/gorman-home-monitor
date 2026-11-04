@@ -12,6 +12,7 @@ import time
 import urllib.request
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from zoneinfo import ZoneInfo
+from meross_status import MerossStatus, apply_device_config
 import office_telemetry
 from flight_telemetry import FlightTelemetryService
 from satellite_telemetry import SatelliteTelemetryService
@@ -34,11 +35,12 @@ def read(address):
 class Monitor:
     def __init__(self):
         self.lock=threading.RLock();self.stop=threading.Event();self.sources={}
+        self.meross=MerossStatus(CONFIG/'meross-credentials.json')
         self.station=office_telemetry.TelemetryService(history_path=CONFIG/'weather-history.json')
         self.flights=FlightTelemetryService();self.flights.set_weather_enabled(True)
         self.space=SatelliteTelemetryService(cache_dir=str(CONFIG/'space-cache'))
     def start(self):
-        self.station.start();self.flights.start();self.space.start()
+        self.station.start();self.flights.start();self.space.start();self.meross.start()
         for name,interval,job in [('kitchen',30,lambda:read(KITCHEN_URL)),('alerts',60,self.alerts),('forecast',600,self.forecast)]:
             threading.Thread(target=self.worker,args=(name,interval,job),daemon=True).start()
     def worker(self,name,interval,job):
@@ -70,6 +72,11 @@ class Monitor:
         return {'hourly':hourly,'days':list(days.values())[:5]}
     def snapshot(self):
         with self.lock:sources=dict(self.sources)
+        if 'kitchen' in sources:
+            try:device_config=json.loads((CONFIG/'device-tiles.json').read_text())
+            except (OSError,ValueError):device_config={}
+            meross=self.meross.snapshot() if hasattr(self,'meross') else {}
+            sources['kitchen']={**sources['kitchen'],'data':apply_device_config(sources['kitchen'].get('data',{}),device_config,meross)}
         flights=self.flights.snapshot();weather=flights.get('weather',{})
         tiles=weather.pop('tiles',{})
         weather['tiles']=[{'x':x,'y':y,'url':'/radar/%s/%s.png?v=%s'%(x,y,int(weather.get('updated',0)))} for x,y in tiles]
