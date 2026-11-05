@@ -87,4 +87,9 @@ def apply_device_config(kitchen, config, meross):
             members.append({**reading,'name':name,'display_label':config.get('member_labels',{}).get(normal(name),name)})
         entries.append({'name':group['name'],'members':members,'unresolved':group.get('unresolved',0)})
     result['device_groups']=entries
+    if result.get('aqualink'):
+        feed=dict(result['aqualink']);pool=dict(feed.get('data') or {})
+        hidden=set(config.get('pool_hidden_equipment',[]))
+        pool['equipment']=[d for d in pool.get('equipment',[]) if d.get('id') not in hidden]
+        feed['data']=pool;result['aqualink']=feed
     return result
