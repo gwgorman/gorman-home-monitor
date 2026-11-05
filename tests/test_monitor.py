@@ -53,11 +53,12 @@ class MonitorTests(unittest.TestCase):
     def test_rapid_wind_does_not_refresh_temperature_age(self):
         import office_telemetry
         c=office_telemetry.TelemetryService()
-        observation=[100,0,1,2,90,3,1000,20,50,100,1,50,0,0,0,0,2.8,1]
+        observed=int(time.time())
+        observation=[observed,0,1,2,90,3,1000,20,50,100,1,50,0,0,0,0,2.8,1]
         c._handle_weather({'type':'obs_st','obs':[observation]})
-        c._handle_weather({'type':'rapid_wind','ob':[200,5,180]})
+        c._handle_weather({'type':'rapid_wind','ob':[observed+100,5,180]})
         w=c.snapshot()['weather']
-        self.assertEqual(w['temperature_observed'],100)
+        self.assertEqual(w['temperature_observed'],observed)
         self.assertEqual(w['wind_mps'],5)
 
     def test_inventory_keeps_report_ages_and_rejects_invalid_battery(self):
@@ -107,3 +108,32 @@ class MonitorTests(unittest.TestCase):
             self.assertEqual(len(rows),2)
             self.assertEqual(rows[-1]['pressure_mb'],992.5)
             self.assertEqual(path.stat().st_mode&0o777,0o600)
+
+class LightningTimestampTests(unittest.TestCase):
+    def test_truncated_strike_time_is_rejected_not_invented(self):
+        from unittest.mock import patch
+        import office_telemetry
+        collector=office_telemetry.TelemetryService()
+        now=1793918400
+        with patch.object(office_telemetry.time,'time',return_value=now):
+            collector._handle_weather({'type':'evt_strike','evt':[1793918,5,1]})
+        weather=collector.snapshot()['weather']
+        self.assertNotIn('last_lightning',weather)
+        self.assertNotIn('last_close_lightning',weather)
+        self.assertEqual(collector.snapshot()['weatherflow']['rejected_lightning_event']['timestamp'],1793918)
+    def test_valid_strike_time_is_preserved(self):
+        from unittest.mock import patch
+        import office_telemetry
+        collector=office_telemetry.TelemetryService()
+        now=1793918400
+        with patch.object(office_telemetry.time,'time',return_value=now):
+            collector._handle_weather({'type':'evt_strike','evt':[now-120,5,1]})
+        weather=collector.snapshot()['weather']
+        self.assertEqual(weather['last_lightning'],now-120)
+        self.assertEqual(weather['last_lightning_time_source'],'detected')
+
+    def test_invalid_observation_cannot_create_lightning_count(self):
+        import office_telemetry
+        collector=office_telemetry.TelemetryService()
+        collector._handle_weather({'type':'obs_st','obs':[[1793918,0,1,2,90,3,1000,20,50,100,1,50,0,0,5,1,2.8,1]]})
+        self.assertNotIn('lightning_5m',collector.snapshot()['weather'])

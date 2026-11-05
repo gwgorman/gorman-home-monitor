@@ -324,6 +324,16 @@ class TelemetryService:
                     current['error']='USACE report unavailable'
             self._stop.wait(30 if failed else USGS_REFRESH_SECONDS)
 
+    @staticmethod
+    def _weather_timestamp(value, now):
+        try:
+            timestamp=float(value)
+        except (ValueError,TypeError):
+            return None
+        if isinstance(value,bool) or not math.isfinite(timestamp) or not 946684800 <= timestamp <= now+300:
+            return None
+        return timestamp
+
     def _handle_weather(self, packet):
         kind, now = packet.get("type"), time.time()
         values = {}
@@ -333,7 +343,10 @@ class TelemetryService:
         elif kind == "obs_st" and packet.get("obs"):
             ob = packet["obs"][0]
             if len(ob) >= 18:
-                observed = float(ob[0])
+                observed = self._weather_timestamp(ob[0],now)
+                if observed is None:
+                    with self._lock:self._data['weatherflow']['invalid_observation_timestamp']={'timestamp':ob[0],'received_at':now}
+                    return
                 strike_count = max(0, int(ob[15] or 0))
                 strike_distance = float(ob[14]) if strike_count and ob[14] is not None else None
                 self._lightning_observations[observed] = (strike_count, strike_distance)
@@ -359,16 +372,26 @@ class TelemetryService:
                     "battery_v": ob[16], "station_serial": packet.get("serial_number"),
                     "hub_serial": packet.get("hub_sn"),
                 }
+                if strike_count and self._weather_timestamp(observed,now) is not None:
+                    with self._lock:previous=self._data['weather'].get('last_lightning',0)
+                    if observed >= previous or self._weather_timestamp(previous,now) is None:
+                        values.update(last_lightning=observed,last_lightning_time_source='observation')
                 if strike_distance is not None and strike_distance <= 0.804672:
                     values.update(last_close_lightning=observed,
                                   last_close_lightning_km=strike_distance)
                 if len(ob) > 18:
                     values["daily_rain_mm"] = ob[18]
         elif kind == "evt_strike" and len(packet.get("evt", ())) >= 2:
-            values = {"last_lightning": packet["evt"][0],
+            timestamp=self._weather_timestamp(packet['evt'][0],now)
+            if timestamp is None:
+                with self._lock:self._data['weatherflow']['rejected_lightning_event']={'timestamp':packet['evt'][0],'distance_km':packet['evt'][1],'serial_number':packet.get('serial_number'),'received_at':now}
+                return
+            values = {"last_lightning": timestamp,
+                      "last_lightning_received_at": now,
+                      "last_lightning_time_source": 'detected',
                       "last_lightning_km": packet["evt"][1]}
             if float(packet["evt"][1]) <= 0.804672:
-                values.update(last_close_lightning=packet["evt"][0],
+                values.update(last_close_lightning=timestamp,
                               last_close_lightning_km=packet["evt"][1])
         elif kind == "evt_precip":
             values = {"precip_active": True, "last_precip": packet.get("evt", [now])[0]}
