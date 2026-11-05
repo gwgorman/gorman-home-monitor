@@ -84,7 +84,7 @@ def apply_device_config(kitchen, config, meross):
         for name in group.get('members',[]):
             if normal(name) in excluded or 'iphone' in normal(name):continue
             reading=lookup.get(normal(name),{})
-            members.append({**reading,'name':name})
+            members.append({**reading,'name':name,'display_label':config.get('member_labels',{}).get(normal(name),name)})
         entries.append({'name':group['name'],'members':members,'unresolved':group.get('unresolved',0)})
     result['device_groups']=entries
     return result
