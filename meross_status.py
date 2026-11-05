@@ -66,6 +66,7 @@ def apply_device_config(kitchen, config, meross):
         key=normal(original.get('name',''))
         if key in excluded or key in door_names:continue
         item=dict(original)
+        item['name']=config.get('device_names',{}).get(key,item.get('name',''))
         if key in groups:item['tile_group']=groups[key]
         if key in config.get('notes',{}):item['device_note']=config['notes'][key]
         items.append(item)

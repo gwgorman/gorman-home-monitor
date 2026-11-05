@@ -21,3 +21,11 @@ class DeviceTilesTests(unittest.TestCase):
   self.assertEqual([m['name'] for m in result['members']],['Art','Missing'])
   self.assertEqual(result['members'][0]['switch'],'on');self.assertEqual(result['members'][0]['battery'],80)
   self.assertNotIn('switch',result['members'][1]);self.assertEqual(result['unresolved'],1)
+
+ def test_source_name_alias_connects_group_to_same_live_device(self):
+  source={'house':{'data':{'items':[{'name':'Small lamp','switch':'off'}]}}}
+  config={'device_names':{'small lamp':'Fence 2'},'group_entries':[{'name':'Fence','members':['Fence 2']}]}
+  result=apply_device_config(source,config,{})
+  self.assertEqual(result['house']['data']['items'][0]['name'],'Fence 2')
+  self.assertEqual(result['device_groups'][0]['members'][0]['switch'],'off')
+  self.assertEqual(source['house']['data']['items'][0]['name'],'Small lamp')
