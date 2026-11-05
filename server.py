@@ -82,7 +82,9 @@ class Monitor:
         weather['tiles']=[{'x':x,'y':y,'url':'/radar/%s/%s.png?v=%s'%(x,y,int(weather.get('updated',0)))} for x,y in tiles]
         alerts=sources.get('alerts',{})
         if alerts.get('data'):alerts={**alerts,'data':[a for a in alerts['data'] if a['expires']>time.time()]}
-        return {**sources,'alerts':alerts,'location':LOCATION,'timezone':str(TZ),'station':self.station.snapshot(),'flights':flights,'space':self.space.snapshot(),'now':time.time()}
+        try:waterguru=json.loads((CONFIG/'waterguru-reading.json').read_text())
+        except (OSError,ValueError):waterguru={'state':'unavailable','message':'WaterGuru connection not configured','data':{}}
+        return {**sources,'waterguru':waterguru,'alerts':alerts,'location':LOCATION,'timezone':str(TZ),'station':self.station.snapshot(),'flights':flights,'space':self.space.snapshot(),'now':time.time()}
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self,*args):pass
