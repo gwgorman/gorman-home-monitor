@@ -10,6 +10,7 @@ except ImportError:
     psutil = None
 
 from water_history import lake_history, release_report
+from lake_temperatures import SOURCES as TEMPERATURE_SOURCES, fetch_temperature
 
 WEATHERFLOW_PORT = 50222
 USGS_REFRESH_SECONDS = 900
@@ -132,6 +133,19 @@ class TelemetryService:
             "water": {"lake": {}, "trinity": {}},
             "weatherflow": {"connected": False, "updated": 0.0, "error": "WAITING"},
         }
+        self._temperature_due = {}
+        self._temperature_path = (os.path.join(os.path.dirname(self._history_path), 'lake-temperatures.json')
+                                  if self._history_path else None)
+        if self._temperature_path:
+            try:
+                with open(self._temperature_path, encoding='utf-8') as stream:
+                    cached = json.load(stream)
+                if isinstance(cached, dict):
+                    self._data['water']['temperatures'] = {key: value for key, value in cached.items()
+                        if key in TEMPERATURE_SOURCES and isinstance(value, dict)
+                        and value.get('url') == TEMPERATURE_SOURCES[key]}
+            except (OSError, ValueError, TypeError):
+                pass
         self._threads = []
         if self._history_path:
             try:
@@ -298,6 +312,34 @@ class TelemetryService:
                 summary["link_updated"] = now
                 self._data["water"][source] = summary
 
+    def _refresh_lake_temperatures(self):
+        now = time.time()
+        for key, url in TEMPERATURE_SOURCES.items():
+            with self._lock:
+                current = self._data['water'].setdefault('temperatures', {}).get(key, {})
+            due = self._temperature_due.get(key, current.get('fetched_at', 0) + 21600)
+            if now < due:
+                continue
+            try:
+                reading = fetch_temperature(url)
+                self._temperature_due[key] = now + 21600
+            except Exception:
+                reading = dict(current, url=url, source='LakeMonster', error='Published estimate unavailable')
+                self._temperature_due[key] = now + 900
+            with self._lock:
+                self._data['water']['temperatures'][key] = reading
+        if self._temperature_path:
+            temporary = self._temperature_path + '.tmp'
+            try:
+                with self._lock:
+                    cached = copy.deepcopy(self._data['water'].get('temperatures', {}))
+                os.makedirs(os.path.dirname(self._temperature_path), mode=0o700, exist_ok=True)
+                with open(temporary, 'w', encoding='utf-8') as stream:
+                    json.dump(cached, stream)
+                os.replace(temporary, self._temperature_path)
+            except OSError:
+                pass
+
     def _usgs_loop(self):
         """Poll primary USGS feeds directly."""
         while not self._stop.is_set():
@@ -322,6 +364,7 @@ class TelemetryService:
                 with self._lock:
                     current=self._data['water'].setdefault('releases',{'items':{}})
                     current['error']='USACE report unavailable'
+            self._refresh_lake_temperatures()
             self._stop.wait(30 if failed else USGS_REFRESH_SECONDS)
 
     @staticmethod
