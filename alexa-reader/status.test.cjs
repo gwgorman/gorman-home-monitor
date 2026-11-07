@@ -1,0 +1,7 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),{summarize}=require('./status.cjs');
+const targets=[{name:'front',id:'channel1'},{name:'back',id:'channel2'}],now=1794015000;
+function state(id,power,stamp=now){return {entity:{entityId:id},capabilityStates:[JSON.stringify({namespace:'Alexa.PowerController',name:'powerState',value:power,timeOfSample:new Date(stamp*1000).toISOString()})]};}
+test('channels map by endpoint, never response position',()=>{const rows=summarize({deviceStates:[state('channel2','ON'),state('channel1','OFF')]},targets,now);assert.deepEqual(rows.map(x=>x.switch),['off','on']);assert.ok(rows.every(x=>x.display_source==='Alexa'));});
+test('missing, failed, old and unreachable channels remain unknown',()=>{for(const response of [{},{deviceStates:[state('channel1','ON',now-7*86400-1)]},{deviceStates:[{...state('channel1','ON'),error:'FAULT'}]},{deviceStates:[{...state('channel1','ON'),capabilityStates:[...state('channel1','ON').capabilityStates,{namespace:'Alexa.EndpointHealth',name:'connectivity',value:{value:'UNREACHABLE'}}]}]}]){assert.ok(summarize(response,targets,now).every(x=>x.switch===undefined));}});
+
+test('a cached report retains its sample time, never query time',()=>{const row=summarize({deviceStates:[state('channel1','ON',now-7200)]},targets,now)[0];assert.equal(row.switch,'on');assert.equal(row.updated,now-7200);assert.equal(row.fetched,now);});

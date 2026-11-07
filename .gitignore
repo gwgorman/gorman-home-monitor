@@ -9,3 +9,7 @@ __pycache__/
 *.log
 .DS_Store
 ._*
+node_modules/
+alexa-auth.json
+alexa-targets.json
+alexa-status.json

@@ -1,0 +1,13 @@
+[Unit]
+Description=Home monitor read-only Alexa landscape status
+After=network-online.target
+[Service]
+Type=simple
+WorkingDirectory=%h/home-monitor/alexa-reader
+ExecStart=/usr/bin/node %h/home-monitor/alexa-reader/status.cjs
+Restart=on-failure
+RestartSec=900
+UMask=0077
+NoNewPrivileges=true
+[Install]
+WantedBy=default.target

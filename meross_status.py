@@ -54,7 +54,7 @@ class MerossStatus:
                 await asyncio.sleep(60)
         finally:manager.close()
 
-def apply_device_config(kitchen, config, meross):
+def apply_device_config(kitchen, config, meross, alexa_items=None):
     """Annotate live source items, replacing duplicate garage contacts only."""
     normal=lambda text:' '.join(text.strip().lower().replace('’',"'").split())
     result=dict(kitchen);house=dict(result.get('house') or {});data=dict(house.get('data') or {})
@@ -70,6 +70,9 @@ def apply_device_config(kitchen, config, meross):
         if key in groups:item['tile_group']=groups[key]
         if key in config.get('notes',{}):item['device_note']=config['notes'][key]
         items.append(item)
+    # Use supplemental Alexa readings only where the direct feeds have no device.
+    direct_names={normal(item.get('name','')) for item in items}
+    items.extend(item for item in (alexa_items or []) if normal(item.get('name','')) not in direct_names and normal(item.get('name','')) not in excluded)
     items.extend(doors);data['items']=items;house['data']=data;result['house']=house
     lookup={}
     for item in items:

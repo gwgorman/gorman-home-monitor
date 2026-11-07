@@ -13,6 +13,7 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from zoneinfo import ZoneInfo
 from meross_status import MerossStatus, apply_device_config
+from alexa_status import read_alexa_status
 import office_telemetry
 from flight_telemetry import FlightTelemetryService
 from satellite_telemetry import SatelliteTelemetryService
@@ -76,7 +77,7 @@ class Monitor:
             try:device_config=json.loads((CONFIG/'device-tiles.json').read_text())
             except (OSError,ValueError):device_config={}
             meross=self.meross.snapshot() if hasattr(self,'meross') else {}
-            sources['kitchen']={**sources['kitchen'],'data':apply_device_config(sources['kitchen'].get('data',{}),device_config,meross)}
+            sources['kitchen']={**sources['kitchen'],'data':apply_device_config(sources['kitchen'].get('data',{}),device_config,meross,read_alexa_status(CONFIG/'alexa-status.json'))}
         flights=self.flights.snapshot();weather=flights.get('weather',{})
         tiles=weather.pop('tiles',{})
         weather['tiles']=[{'x':x,'y':y,'url':'/radar/%s/%s.png?v=%s'%(x,y,int(weather.get('updated',0)))} for x,y in tiles]

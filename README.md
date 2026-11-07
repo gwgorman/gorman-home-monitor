@@ -139,3 +139,7 @@ not stored. Meross still requires its cloud connection.
 On older ARM Pis, optional Meross compression speedups may require a long build.
 The reader also works with `meross-iot` installed using `--no-deps`, plus
 `aiohttp`, `requests`, `pycryptodomex`, and `paho-mqtt>=2.1,<3` installed normally.
+
+### Optional Alexa-only landscape plug readings
+
+The narrow `alexa-reader/status.cjs` sidecar queries up to five explicitly configured endpoints every two minutes; it exposes no listener and sends no control commands. Install its pinned dependency with `cd alexa-reader && npm ci --ignore-scripts`. Keep `alexa-auth.json` (the existing Alexa registration) and `alexa-targets.json` (an array of `{ "name": "display name", "id": "appliance endpoint" }`) in `~/.config/home-monitor/`, mode 0600. Enable `deploy/home-monitor-alexa.service` as a user service. The sidecar renews and saves complete registrations; an expired registration requires a fresh sign-in using the separate local authentication helper. Status snapshots remain private and are merged only for devices missing from direct feeds. Alexa returns cached reports: their sample timestamps are retained and never replaced with query time. Missing, unreachable or week-old samples remain unknown, and a stale or failed collector snapshot is discarded after five minutes. Auth files, endpoint identifiers and runtime snapshots must not be committed.
