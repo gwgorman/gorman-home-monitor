@@ -84,20 +84,23 @@ async function main(){
  const call=(method,args=[],timeout=45000)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Alexa request timed out')),timeout);alexa[method](...args,(err,result)=>{clearTimeout(timer);err?reject(err):resolve(result);});});
  await call('init',[{cookie:registration,formerRegistrationData:registration,macDms:registration?.macDms,amazonPage:saved.amazonPage||'amazon.com',useWsMqtt:false,setupProxy:false,cookieRefreshInterval:4*86400000,logger:()=>{}}]);
  process.on('SIGTERM',()=>{alexa.stop();process.exit(0);});
- let targets=[],entries=[],discoveryAt=0,inventoryCount=0;const readings=new Map();
+ let targets=[],entries=[],discoveryAt=0,inventoryCount=0,cycleQueried=0;const readings=new Map();
  const publish=()=>{
   const items=targets.map(t=>readings.get(t.id)||{name:t.name,error:'Awaiting Alexa query',updated:0});
   save(statusPath,{state:'live',updated:Date.now()/1000,discovery_at:discoveryAt,group_entries:entries,
-   coverage:{inventory:inventoryCount,queried:targets.length,readings:items.filter(i=>!i.error).length,unavailable:items.filter(i=>i.error).length},data:{items}});
+   coverage:{inventory:inventoryCount,eligible:targets.length,queried:cycleQueried,readings:items.filter(i=>!i.error).length,unavailable:items.filter(i=>i.error).length},data:{items}});
  };
  while(true){
-  const cycleStarted=Date.now();let limited=false;
+  const cycleStarted=Date.now();let limited=false;cycleQueried=0;
   if(Date.now()/1000-discoveryAt>=21600){
    try{
     let settings={};try{settings=JSON.parse(fs.readFileSync(path.join(config,'device-tiles.json')));}catch{}
     const devices=await call('getSmarthomeDevicesV2'),groups=await call('getSmarthomeGroups');
     if(!Array.isArray(devices)||!Array.isArray(groups.applianceGroups))throw Error('Invalid discovery');
-    targets=selectTargets(devices,settings);entries=resolveGroups(groups,devices,settings);inventoryCount=devices.length;discoveryAt=Date.now()/1000;
+    targets=selectTargets(devices,settings);
+    const priority=new Map((settings.alexa_priority||[]).map((name,index)=>[normal(name),index]));
+    targets.sort((a,b)=>(priority.get(normal(a.name))??10000)-(priority.get(normal(b.name))??10000));
+    entries=resolveGroups(groups,devices,settings);inventoryCount=devices.length;discoveryAt=Date.now()/1000;
    }catch{if(!targets.length)throw Error('Alexa discovery unavailable');}
   }
   for(let i=0;i<targets.length;i+=16){
@@ -108,7 +111,7 @@ async function main(){
     limited=errors.some(e=>/throttl|rate|too.many/i.test(e.code||e.message||''));
     summarize(response,batch).forEach((row,index)=>readings.set(batch[index].id,row));
    }catch(error){limited=/429|throttl|rate|too.many/i.test(error.message||'');for(const t of batch)readings.set(t.id,{name:t.name,error:'Alexa query unavailable',updated:0,fetched:Date.now()/1000});}
-   publish();if(limited)break;
+   cycleQueried+=batch.length;publish();if(limited)break;
    if(i+16<targets.length)await new Promise(resolve=>setTimeout(resolve,12000));
   }
   // Each endpoint is queried at most once per five-minute cycle; back off on throttling.
