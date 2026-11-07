@@ -1,5 +1,5 @@
 [Unit]
-Description=Home monitor read-only Alexa landscape status
+Description=Home monitor read-only Alexa household status
 After=network-online.target
 [Service]
 Type=simple

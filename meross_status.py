@@ -72,7 +72,18 @@ def apply_device_config(kitchen, config, meross, alexa_items=None):
         items.append(item)
     # Use supplemental Alexa readings only where the direct feeds have no device.
     direct_names={normal(item.get('name','')) for item in items}
-    items.extend(item for item in (alexa_items or []) if normal(item.get('name','')) not in direct_names and normal(item.get('name','')) not in excluded)
+    sensor_names={normal(item.get('name','')) for item in (result.get('sensors') or {}).get('items',[])}
+    for original in alexa_items or []:
+        key=normal(original.get('name',''))
+        if key in excluded or 'iphone' in key:continue
+        item=dict(original)
+        item['name']=config.get('device_names',{}).get(key,item.get('name',''))
+        key=normal(item['name'])
+        if key in direct_names or key in sensor_names or key in door_names:continue
+        if key in groups:item['tile_group']=groups[key]
+        if key in config.get('notes',{}):item['device_note']=config['notes'][key]
+        if not item.get('error'):
+            items.append(item);direct_names.add(key)
     items.extend(doors);data['items']=items;house['data']=data;result['house']=house
     lookup={}
     for item in items:
